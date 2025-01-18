@@ -24,7 +24,7 @@ async def scrape_jobs(payload: ScraperPayload) -> List[Dict[str, str]]:
         await asyncio.sleep(random.uniform(1, 3))
 
         browser = await launch(
-            headless=True,
+            headless=False,
             args=['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
         )
         page = await browser.newPage()
@@ -78,9 +78,6 @@ async def get_inner_text(parent_element, selector: str, page) -> str:
     """
     try:
         element = await parent_element.querySelector(selector)
-        # print raw html from parent_element
-        print(" Parent Element: ")
-        print(await page.evaluate('(el) => el.innerHTML', parent_element))
         if element:
             # Using page.evaluate to get property from the element itself (no JS code creation)
             text = await page.evaluate("el => el.innerText", element)
@@ -123,11 +120,11 @@ async def main():
         ScraperPayload(
             url="https://jobs.careers.microsoft.com/global/en/search?l=en_us&pg=1&pgSz=20",
             job_list_selector=".ms-List-cell",
-            title_selector=".ms-List-cell h2",
-            description_selector=".ms-Stack.css-420 span[aria-label='job description']",
-            location_selector=".col-12.col-lg-4 span.job-location",  # Example, adjust to actual
-            link_selector="a",
-            date_selector=".col-12.col-lg-4 span.posted-date"  # Example, adjust to actual
+            title_selector="h2",
+            description_selector="div div div:nth-child(2) div span",
+            location_selector="div.ms-Stack:nth-child(2) span",
+            link_selector=None,
+            date_selector=None
         ),
     ]
 
@@ -138,3 +135,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
