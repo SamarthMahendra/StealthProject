@@ -10,8 +10,6 @@ class ScraperPayload:
     url: str
     job_list_selector: str
     title_selector: str
-    description_selector: str
-    location_selector: str
     link_selector: str
     date_selector: Optional[str] = None
 
@@ -24,7 +22,7 @@ async def scrape_jobs(payload: ScraperPayload) -> List[Dict[str, str]]:
         await asyncio.sleep(random.uniform(1, 3))
 
         browser = await launch(
-            headless=False,
+            headless=True,
             args=['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
         )
         page = await browser.newPage()
@@ -55,8 +53,6 @@ async def scrape_jobs(payload: ScraperPayload) -> List[Dict[str, str]]:
                 if title or description or location or link:
                     jobs.append({
                         "title": title,
-                        "description": description,
-                        "location": location,
                         "link": link
                     })
             except Exception as e:
@@ -120,9 +116,7 @@ async def main():
         ScraperPayload(
             url="https://jobs.careers.microsoft.com/global/en/search?l=en_us&pg=1&pgSz=20",
             job_list_selector=".ms-List-cell",
-            title_selector="h2",
-            description_selector="div div div:nth-child(2) div span",
-            location_selector="div.ms-Stack:nth-child(2) span",
+            title_selector=".MZGzlrn8gfgSs8TZHhv2",
             link_selector=None,
             date_selector=None
         ),
