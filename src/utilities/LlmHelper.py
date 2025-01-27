@@ -5,8 +5,8 @@ from openai import OpenAI
 class LlmHelper:
 
     def __init__(self):
-        self.api_key = os.getenv('api_key')
-        self.client = self.client = OpenAI(api_key=self.api_key)
+        self.api_key: str = os.getenv('api_key')
+        self.client: OpenAI = OpenAI(api_key=self.api_key)
 
 
     def query(self, str):

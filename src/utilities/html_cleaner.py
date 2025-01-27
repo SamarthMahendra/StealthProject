@@ -7,8 +7,8 @@ class HTMLCleaner(Cleaner):
     Concrete implementation of the Cleaner abstract class for HTML content.
     """
 
-    def __init__(self, html_content):
-        self.html_content = html_content
+    def __init__(self, html_content: str):
+        self.html_content: str = html_content
 
     def strip_unwanted_tags(self):
         soup = BeautifulSoup(self.html_content, 'html.parser')
@@ -55,7 +55,7 @@ class HTMLCleaner(Cleaner):
         body = soup.find('body')
         # remove all attributes from the body tag
         body.attrs = {}
-        self.html_content = str(body)
+        self.html_content: str = str(body)
         return str(body)
 
 

@@ -7,7 +7,7 @@ class Cleaner(ABC):
     """
 
     @abstractmethod
-    def strip_unwanted_tags(self, html_content):
+    def strip_unwanted_tags(self, html_content: str):
         """
         Remove unwanted tags and their content from the input.
 
@@ -20,7 +20,7 @@ class Cleaner(ABC):
         pass
 
     @abstractmethod
-    def remove_comments(self, html_content):
+    def remove_comments(self, html_content: str):
         """
         Remove all comments from the input.
 
@@ -33,7 +33,7 @@ class Cleaner(ABC):
         pass
 
     @abstractmethod
-    def retain_allowed_attributes(self, html_content):
+    def retain_allowed_attributes(self, html_content: str):
         """
         Retain only allowed attributes ('class', 'id') in the input tags.
 
@@ -45,7 +45,7 @@ class Cleaner(ABC):
         """
         pass
 
-    def clean(self, html_content):
+    def clean(self, html_content: str):
         """
         Clean the content by applying all cleaning methods in sequence.
 
