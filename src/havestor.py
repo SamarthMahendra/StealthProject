@@ -5,6 +5,10 @@ from dataclasses import dataclass
 from typing import List, Dict, Optional
 
 
+from src.cache.Redis import Redis
+
+
+
 @dataclass
 class ScraperPayload:
     url: str
@@ -15,6 +19,7 @@ class ScraperPayload:
 
 
 async def scrape_jobs(payload: ScraperPayload) -> List[Dict[str, str]]:
+    r = Redis()
     """Scrapes jobs based on the given payload without using JavaScript code in page.evaluate."""
     browser = None
     try:
@@ -43,18 +48,21 @@ async def scrape_jobs(payload: ScraperPayload) -> List[Dict[str, str]]:
         jobs = []
         job_list_elements = await page.querySelectorAll(payload.job_list_selector)
         for job_el in job_list_elements:
+            # print html of each job element
+            print(await page.evaluate('(el) => el.outerHTML', job_el))
             try:
                 title = await get_inner_text(job_el, payload.title_selector, page)
-                description = await get_inner_text(job_el, payload.description_selector, page)
-                location = await get_inner_text(job_el, payload.location_selector, page)
                 link = await get_link_href(job_el, payload.link_selector, page)
 
                 # Append scraped job to the list
-                if title or description or location or link:
+                if title or link:
                     jobs.append({
                         "title": title,
                         "link": link
                     })
+
+                    # append job to redis list
+                    r.append_to_list('jobs', link)
             except Exception as e:
                 print(f"Error extracting job element: {e}")
 
@@ -99,32 +107,51 @@ async def get_link_href(parent_element, selector: str, page) -> str:
     return ""
 
 
-async def worker(queue: List[ScraperPayload]):
+async def worker(queue: ScraperPayload):
     """Worker to process the scraping jobs."""
     while queue:
-        payload = queue.pop(0)
-        print(f"Processing: {payload.url}")
+
         try:
-            jobs = await scrape_jobs(payload)
-            print(f"Jobs scraped from {payload.url}:\n", jobs)
+            jobs = await scrape_jobs(queue)
+            print(f"Jobs scraped from {queue.url}:\n", jobs)
         except Exception as e:
-            print(f"Failed to scrape {payload.url}: {e}")
+            print(f"Failed to scrape {queue.url}: {e}")
 
 
 async def main():
+
+    base_url = "https://jobs.apple.com/en-us/search?location=united-states-USA"
+    page_key = "page"
+    page_limit = 175
+    config = {
+        'job_list_selector': ".table-col-1",
+        'title_selector': ".table--advanced-search__title",
+        'link_selector': ".table--advanced-search__title",
+
+    }
+
+    # Create a queue of payloads
     queue = [
         ScraperPayload(
-            url="https://jobs.careers.microsoft.com/global/en/search?l=en_us&pg=1&pgSz=20",
-            job_list_selector=".ms-List-cell",
-            title_selector=".MZGzlrn8gfgSs8TZHhv2",
-            link_selector=None,
-            date_selector=None
-        ),
+            url=f"{base_url}&{page_key}={i}",
+            job_list_selector=config['job_list_selector'],
+            title_selector=config['title_selector'],
+            link_selector=config['link_selector'],
+        ) for i in range(page_limit + 1)
     ]
 
-    # Create tasks for concurrent execution
-    tasks = [worker([payload]) for payload in queue]
-    await asyncio.gather(*tasks)
+    # Batch size for concurrent workers
+    batch_size = 10
+
+    # Process payloads in batches
+    for i in range(0, len(queue), batch_size):
+        batch = queue[i:i + batch_size]
+        print(f"Starting batch {i // batch_size + 1} with {len(batch)} tasks...")
+        await asyncio.gather(*(worker(payload) for payload in batch))
+        print(f"Batch {i // batch_size + 1} completed.")
+        # sleep for a while
+        await asyncio.sleep(30)
+
 
 
 if __name__ == "__main__":
