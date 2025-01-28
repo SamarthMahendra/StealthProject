@@ -61,6 +61,7 @@ async def scrape_jobs(payload: ScraperPayload) -> List[Dict[str, str]]:
                         "link": link
                     })
 
+                    # todo : package links that are diverse and append to redis
                     # append job to redis list
                     r.append_to_list('jobs', link)
             except Exception as e:

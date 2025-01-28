@@ -41,8 +41,18 @@ async def scrape_job_details(payload: ScraperPayload, session: aiohttp.ClientSes
     using CSS selectors, and then inserts into the database.
     """
     try:
-        # Basic random delay for rate limiting
-        await asyncio.sleep(random.uniform(1, 2))
+        # # Basic random delay for rate limiting
+        # await asyncio.sleep(random.uniform(1, 2))
+        from src.Database.database import Database
+        db = Database()
+
+        # check if url is already scraped
+        query = "SELECT * FROM job_details WHERE url = %s"
+        params = (payload.url.strip(),)
+        result = db.execute_query_with_params_and_fetch_one(query, params)
+        if result:
+            print(f"[SKIP] Already scraped {payload.url}")
+            return
 
         # Fetch HTML content
         async with session.get(payload.url) as response:
@@ -55,23 +65,30 @@ async def scrape_job_details(payload: ScraperPayload, session: aiohttp.ClientSes
 
         # Extract info based on CSS selectors in the payload
         job_id = get_inner_text(soup, payload.job_id)
+        job_id = job_id.strip() if job_id else None
         title = get_inner_text(soup, payload.title)
+        title = title.strip() if title else None
         location = get_inner_text(soup, payload.location[0])
         if not location:
             location = get_inner_text(soup, payload.location[1])
+        location = location.strip() if location else None
         department = get_inner_text(soup, payload.department)
+        department = department.strip() if department else None
         summary = get_inner_text(soup, payload.summary)
+        summary = summary.strip() if summary else None
         long_desc = get_inner_text(soup, payload.long_description)
+        long_desc = long_desc.strip() if long_desc else None
         date_val = get_inner_text(soup, payload.date)
+        date_val = date_val.strip() if date_val else None
 
         # Insert into the database (example)
-        from src.Database.database import Database
+
         db = Database()
         query = """
-            INSERT INTO job_details (job_id, title, location, department, summary, long_description, date)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO job_details (job_id, title, location, department, summary, long_description, date, end_date, url)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
-        params = (job_id, title, location, department, summary, long_desc, date_val)
+        params = (job_id, title, location, department, summary, long_desc, date_val, None, payload.url)
         db.insert_query(query, params)
 
         # Optionally update the payload with the scraped info
@@ -130,14 +147,14 @@ async def main():
     jobs = [ScraperPayload(url=item, **config) for item in queue]
 
     # Process jobs in small batches if desired:
-    batch_size = 3
+    batch_size = 10
     for i in range(0, len(jobs), batch_size):
         batch = jobs[i : i + batch_size]
         print(f"Scraping batch {i // batch_size + 1} with {len(batch)} items.")
         await scrape_batch(batch)
 
-        # Optional: Sleep between batches
-        await asyncio.sleep(2)
+        # # Optional: Sleep between batches
+        # await asyncio.sleep(2)
 
     print("All done!")
 
