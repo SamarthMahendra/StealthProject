@@ -16,5 +16,6 @@ This system gathers (scrapes) job postings from diverse sources — websites, AP
 
 - **Scraping Engines (Puppeteer, Selenium, Playwright)** for web-based harvesting.
 - **API Connectors** for sites offering structured job data endpoints.
-- **Queueing System (Kafka, RabbitMQ, or AWS SQS)** to handle high-volume ingestion and decouple producers from consumers.
+- **Queueing System (Redis Queue)** to handle high-volume ingestion and decouple producers from consumers.
+- **Celery Workers** to process and execute tasks in distributed queue
 
